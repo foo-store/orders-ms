@@ -21,7 +21,7 @@ enum OrderStatus {
 
 model Order {
   id     String      @id @default(cuid())
-  userId Int
+  userId String
   total  Float
   status OrderStatus @default(PENDING)
 
@@ -34,12 +34,13 @@ model Order {
 }
 
 model OrderDetail {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  quantity  Int
-  price     Float
-  orderId   String
+  id       String @id @default(cuid())
+  quantity Int
+  price    Float
+  orderId  String
 
   order Order @relation(fields: [orderId], references: [id])
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
