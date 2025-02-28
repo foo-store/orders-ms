@@ -6,7 +6,7 @@ export class OrderItemDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  productId: string;
+  productId: number;
 
   @IsNotEmpty()
   @Type(() => Number)

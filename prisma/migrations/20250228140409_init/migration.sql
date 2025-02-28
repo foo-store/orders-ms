@@ -18,8 +18,10 @@ CREATE TABLE "Order" (
 -- CreateTable
 CREATE TABLE "OrderDetail" (
     "id" TEXT NOT NULL,
+    "productId" INTEGER NOT NULL,
+    "productName" TEXT NOT NULL,
+    "productPrice" DOUBLE PRECISION NOT NULL,
     "quantity" INTEGER NOT NULL,
-    "price" DOUBLE PRECISION NOT NULL,
     "orderId" TEXT NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -3,11 +3,13 @@ import * as joi from 'joi';
 
 interface EnvVars {
   NATS_URL: string;
+  RABBITMQ_URL: string;
 }
 
 const envsSchema = joi
   .object({
     NATS_URL: joi.string().required(),
+    RABBITMQ_URL: joi.string().required(),
   })
   .unknown(true);
 
@@ -23,4 +25,5 @@ const envVars: EnvVars = value;
 
 export const envs = {
   natsUrl: envVars.NATS_URL,
+  rabbitMQUrl: envVars.RABBITMQ_URL,
 };
