@@ -1,8 +1,14 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { Order, PrismaClient } from '@prisma/client';
-import { firstValueFrom } from 'rxjs';
+import { OrderStatus, Prisma, PrismaClient } from '@prisma/client';
+import { catchError, firstValueFrom } from 'rxjs';
 import { NATS_CLIENT, RABBITMQ_CLIENT } from 'src/common/constants';
+import {
+  CreatePaymentSessionDto,
+  OrderStatusDto,
+  PaymentSessionDto,
+  PaymentSucceededDto,
+} from './dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Product } from './interfaces';
 
@@ -22,7 +28,9 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     super();
   }
 
-  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+  async create(
+    createOrderDto: CreateOrderDto,
+  ): Promise<Prisma.OrderGetPayload<{ include: { OrderDetail: true } }>> {
     let products: Product[];
 
     try {
@@ -45,7 +53,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       })
       .reduce((acc, curr) => acc + curr);
 
-    const newOrder = await this.order.create({
+    return await this.order.create({
       data: {
         userId: createOrderDto.userId,
         total: totalAmount,
@@ -60,14 +68,50 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
           })),
         },
       },
+      include: { OrderDetail: true },
     });
+  }
 
-    this.rabbitmqProxy
-      .emit('payment.create', {
-        message: 'Emit event from Orders Service',
-      })
-      .subscribe();
+  async createPaymentSession(
+    order: Prisma.OrderGetPayload<{ include: { OrderDetail: true } }>,
+  ): Promise<any> {
+    try {
+      return await firstValueFrom(
+        this.rabbitmqProxy.send<PaymentSessionDto, CreatePaymentSessionDto>(
+          'payment.session.create',
+          {
+            orderId: order.id,
+            currency: 'usd',
+            items: order.OrderDetail.map((item) => ({
+              name: item.productName,
+              price: item.productPrice,
+              quantity: item.quantity,
+            })),
+          },
+        ),
+      );
+    } catch (error) {
+      console.error({ error });
+    }
+  }
 
-    return newOrder;
+  async paymentSucceeded(paymentSucceededDto: PaymentSucceededDto) {
+    const { orderId, ...rest } = paymentSucceededDto;
+
+    await this.order.update({
+      where: { id: orderId },
+      data: {
+        status: OrderStatus.PAID,
+        paidAt: new Date(),
+        PaymentOrder: {
+          create: rest,
+        },
+      },
+    });
+  }
+
+  async listFiltered(orderStatusDto: OrderStatusDto) {
+    const { status } = orderStatusDto;
+    return await this.order.findMany({ where: { status } });
   }
 }

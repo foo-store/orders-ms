@@ -20,12 +20,13 @@ enum OrderStatus {
 }
 
 model Order {
-  id     String      @id @default(cuid())
+  id     String      @id @default(uuid())
   userId String
   total  Float
   status OrderStatus @default(PENDING)
 
-  OrderDetail OrderDetail[]
+  OrderDetail  OrderDetail[]
+  PaymentOrder PaymentOrder?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -34,16 +35,29 @@ model Order {
 }
 
 model OrderDetail {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
 
+  orderId      String
   productId    Int
   productName  String
   productPrice Float
   quantity     Int
-  orderId      String
 
   order Order @relation(fields: [orderId], references: [id])
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+model PaymentOrder {
+  id String @id @default(uuid())
+
+  orderId         String @unique
+  stripePaymentId String
+  receiptUrl      String
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
